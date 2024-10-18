@@ -39,6 +39,8 @@ This script automatically comments on messages in Telegram channels using multip
   5. **Set Up Git for Security**
      To allow Git operations in Termux, run:
      ```bash
+     git clone https://github.com/ululazmi18/comment_channel_telegram.git
+     cd comment_channel_telegram
      git config --global --add safe.directory /storage/emulated/0/comment_channel_telegram
      ```
 
