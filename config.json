@@ -1,10 +1,10 @@
 {
-    "api_id": 4765143,
-    "api_hash": "780165a4b075be84420c2e44efcef5ec",
-    "phone_number": "6282319391635",
+    "api_id": none,
+    "api_hash": "",
+    "phone_number": "",
     "comment_delay_min": 1,
-    "comment_delay_max": 2,
-    "switch_delay_min": 1,
-    "switch_delay_max": 2,
+    "comment_delay_max": 5,
+    "switch_delay_min": 300,
+    "switch_delay_max": 600,
     "message_limit": 2
 }
