@@ -46,7 +46,7 @@ default_config = {
 if not os.path.exists(config_file):
     with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(default_config, f, indent=4)
-    print("File config.json telah dibuat. Silakan isi dengan API ID dan Hash.")
+    print("python main.py API_ID API_Hash")
     exit()
 
 # Baca config.json yang ada
@@ -75,7 +75,7 @@ api_id = config.get('api_id')
 api_hash = config.get('api_hash')
 
 if api_id is None or api_hash == "":
-    print("Silakan isi api_id dan api_hash di config.json sebelum menjalankan skrip.")
+    print("python main.py API_ID API_Hash")
     exit()
 
 # Tambahkan nomor telepon baru jika ada argumen
@@ -177,7 +177,7 @@ async def main(app):
 
             except errors.FloodWait as e:
                 print(f"Flood wait: {e.x + 10} detik. Menghentikan sementara...")
-                await asyncio.sleep(e.x + 10)  # Menunggu e.x + 10 detik
+                await countdown(e.x + 10)  # Menunggu e.x + 10 detik
             
             except Exception as e:
                 print("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
