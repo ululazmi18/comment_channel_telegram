@@ -12,6 +12,36 @@ This script automatically comments on messages in Telegram channels using multip
 
 ## 🚀 Installation
 
+### Additional Steps for Termux
+  
+  1. **Update Packages**
+     ```bash
+     pkg update && pkg upgrade
+     ```
+  
+  2. **Install Required Packages**
+     ```bash
+     pkg install python git
+     ```
+  
+  3. **Allow Storage Access**
+     Run the following command to grant storage access:
+     ```bash
+     termux-setup-storage
+     ```
+     Select "Allow" when prompted.
+  
+  4. **Access Internal Folder**
+     ```bash
+     cd /storage/emulated/0
+     ```
+  
+  5. **Set Up Git for Security**
+     To allow Git operations in Termux, run:
+     ```bash
+     git config --global --add safe.directory /storage/emulated/0/comment_channel_telegram
+     ```
+
 ### 1. Preparation
 
 - **Python**: Ensure Python is installed on your system. Download it from [python.org](https://www.python.org/downloads/).
