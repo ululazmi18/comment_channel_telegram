@@ -190,9 +190,15 @@ async def main(app):
     await countdown(switch_delay)
 
 async def run_all_sessions():
-    for phone_number in phone_numbers:
+    total_numbers = len(phone_numbers)
+    for index, phone_number in enumerate(phone_numbers):
         print(f"Using : {phone_number}")
         await process_channel(phone_number)
+        
+        # Jika bukan nomor terakhir, jalankan countdown switch delay
+        if index < total_numbers - 1:
+            switch_delay = random.randint(switch_delay_min, switch_delay_max)
+            await countdown(switch_delay)
 
 # Menjalankan semua sesi
 asyncio.run(run_all_sessions())
