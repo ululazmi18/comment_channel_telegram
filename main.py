@@ -137,7 +137,6 @@ async def main(app):
     for channel_username in target_channels:
         # Mendapatkan pesan terbaru dari setiap saluran
         async for message in app.get_chat_history(channel_username, limit=message_limit):
-            comment_delay = random.randint(comment_delay_min, comment_delay_max)
             message_id = message.id
             try:
                 # Mendapatkan pesan diskusi
@@ -182,9 +181,10 @@ async def main(app):
             except Exception as e:
                 print("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
 
+            
+            comment_delay = random.randint(comment_delay_min, comment_delay_max)
             await countdown(comment_delay)
 
-        await countdown(comment_delay)
     # Delay sebelum berpindah akun
     switch_delay = random.randint(switch_delay_min, switch_delay_max)
     await countdown(switch_delay)
