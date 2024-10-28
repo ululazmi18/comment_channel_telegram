@@ -185,10 +185,6 @@ async def main(app):
             comment_delay = random.randint(comment_delay_min, comment_delay_max)
             await countdown(comment_delay)
 
-    # Delay sebelum berpindah akun
-    switch_delay = random.randint(switch_delay_min, switch_delay_max)
-    await countdown(switch_delay)
-
 async def run_all_sessions():
     total_numbers = len(phone_numbers)
     for index, phone_number in enumerate(phone_numbers):
