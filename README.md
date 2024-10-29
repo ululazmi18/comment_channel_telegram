@@ -69,34 +69,6 @@ Once you're in the repository directory, install the required dependencies:
 pip install -r requirements.txt
 ```
 
-## ⚙️ How to Use
-
-This script uses the following arguments:
-
-```bash
-python main.py --api API_ID API_HASH --cdelay COMMENT_DELAY_MIN COMMENT_DELAY_MAX --sdelay SWITCH_DELAY_MIN SWITCH_DELAY_MAX --limit LIMIT --add PHONE_NUMBER
-```
-
-### 🛠️ Arguments
-
-- `--api API_ID API_HASH`: Your Telegram application's API ID and API Hash.
-- `--cdelay COMMENT_DELAY_MIN COMMENT_DELAY_MAX`: Minimum and maximum delay for comments (in seconds).
-- `--sdelay SWITCH_DELAY_MIN SWITCH_DELAY_MAX`: Minimum and maximum delay for account switching (in seconds).
-- `--limit LIMIT`: Number of messages to fetch from each channel (default: 2).
-- `--add PHONE_NUMBER`: New phone number to add (format: +123456789).
-
-### 💡 Usage Examples
-
-1. **Adding a new account:**
-   ```bash
-   python main.py --api 12345678 your_api_hash --add +123456789
-   ```
-
-2. **Setting delays and message limit:**
-   ```bash
-   python main.py --cdelay 1 5 --sdelay 300 600 --limit 5
-   ```
-
 ## 🔧 Configuration
 
 If the `config.json` file does not exist, the script will create it with default settings. You can manually edit `config.json` if needed.
