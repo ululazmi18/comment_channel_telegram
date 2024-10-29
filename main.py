@@ -12,35 +12,16 @@ init()
 # Konfigurasi logging
 logging.basicConfig(level=logging.ERROR)
 
-# Setup argparser
-parser = argparse.ArgumentParser(description='Skrip Auto Comment Telegram')
-parser.add_argument('--api', nargs=2, metavar=('API_ID', 'API_HASH'), help='API ID dan API Hash untuk Telegram')
-parser.add_argument('--cdelay', nargs=2, type=int, metavar=('COMMENT_DELAY_MIN', 'COMMENT_DELAY_MAX'), help='Delay minimum dan maksimum untuk komentar dalam detik')
-parser.add_argument('--sdelay', nargs=2, type=int, metavar=('SWITCH_DELAY_MIN', 'SWITCH_DELAY_MAX'), help='Delay minimum dan maksimum untuk pergantian akun dalam detik')
-parser.add_argument('--limit', type=int, metavar='LIMIT', help='Jumlah pesan yang diambil dari setiap saluran (default: 2)')
-parser.add_argument('--add', type=str, metavar='PHONE_NUMBER', help='Nomor telepon baru untuk ditambahkan (format: +123456789)')
-
-args = parser.parse_args()
-
-# Ambil argumen dari parser
-api_id = args.api[0] if args.api else None
-api_hash = args.api[1] if args.api else ""
-comment_delay_min = args.cdelay[0] if args.cdelay else 1
-comment_delay_max = args.cdelay[1] if args.cdelay else 5
-switch_delay_min = args.sdelay[0] if args.sdelay else 300
-switch_delay_max = args.sdelay[1] if args.sdelay else 600
-message_limit = args.limit if args.limit is not None else 2
-
 config_file = 'config.json'
 # Jika config.json belum ada, buat dengan default
 default_config = {
     "api_id": None,
     "api_hash": "",
-    "comment_delay_min": comment_delay_min,
-    "comment_delay_max": comment_delay_max,
-    "switch_delay_min": switch_delay_min,
-    "switch_delay_max": switch_delay_max,
-    "message_limit": message_limit
+    "comment_delay_min": 1,
+    "comment_delay_max": 5,
+    "switch_delay_min": 300,
+    "switch_delay_max": 600,
+    "message_limit": 2
 }
 
 if not os.path.exists(config_file):
@@ -52,19 +33,6 @@ if not os.path.exists(config_file):
 # Baca config.json yang ada
 with open(config_file, 'r', encoding='utf-8') as f:
     config = json.load(f)
-
-# Memperbarui config jika argumen diberikan
-if args.api:
-    config['api_id'] = api_id
-    config['api_hash'] = api_hash
-if args.cdelay:
-    config['comment_delay_min'] = comment_delay_min
-    config['comment_delay_max'] = comment_delay_max
-if args.sdelay:
-    config['switch_delay_min'] = switch_delay_min
-    config['switch_delay_max'] = switch_delay_max
-if args.limit is not None:
-    config['message_limit'] = message_limit
 
 # Simpan kembali config jika ada perubahan
 with open(config_file, 'w', encoding='utf-8') as f:
@@ -78,18 +46,6 @@ if api_id is None or api_hash == "":
     print("python main.py API_ID API_Hash")
     exit()
 
-# Tambahkan nomor telepon baru jika ada argumen
-if args.add:
-    phone_number = args.add.strip()
-    session_file = f"{phone_number}.session"
-    # Periksa apakah file session sudah ada
-    if not os.path.exists(session_file):
-        with Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number) as app:
-            app.get_me()
-            print(f"{phone_number} berhasil ditambahkan.")
-    else:
-        print(f"{phone_number} sudah ada.")
-
 # Mendapatkan semua file .session dan nomor telepon
 session_files = [f for f in os.listdir('.') if f.endswith('.session')]
 phone_numbers = [f[:-8] for f in session_files]  # Menghilangkan .session
@@ -98,6 +54,37 @@ phone_numbers = [f[:-8] for f in session_files]  # Menghilangkan .session
 if not phone_numbers:
     print("Tidak ada file session ditemukan.")
     exit()
+
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def display_menu():
+    clear_terminal()
+    print("1. Jalankan Sekali")
+    print("2. Jalankan Berulang")
+    print("3. Buat Session Baru")
+    print("4. Jeda Komentar (", config['comment_delay_min'], "-", config['comment_delay_max'], ") detik")
+    print("5. Jeda Akun (", config['switch_delay_min'], "-", config['switch_delay_max'], ") detik")
+    print("6. Jumlah Post yang dikomentari dari yang terbaru (", config['message_limit'], ")")
+    print("7. Exit")
+
+def display_log_file():
+    try:
+        with open("log.txt", 'r', encoding='utf-8') as f:
+            content = f.read()  # Membaca seluruh isi file
+            print(content)  # Menampilkan isi file
+    except FileNotFoundError:
+        print("File log.txt tidak ditemukan.")
+    except Exception as e:
+        print(f"Terjadi kesalahan: {e}")
+
+def log_to_file(line):
+    with open("log.txt", 'a', encoding='utf-8') as f:
+        f.write(str(line) + '\n')
+
+def clear_log_file():
+    with open("log.txt", 'w', encoding='utf-8') as f:
+        pass
 
 async def countdown(t):
     for i in range(t, 0, -1):
@@ -115,8 +102,6 @@ async def main(app):
     message_limit = config.get('message_limit', 2)
     comment_delay_min = config.get('comment_delay_min', 1)
     comment_delay_max = config.get('comment_delay_max', 5)
-    switch_delay_min = config.get('switch_delay_min', 300)
-    switch_delay_max = config.get('switch_delay_max', 600)
 
     os.makedirs('text', exist_ok=True)
 
@@ -126,6 +111,7 @@ async def main(app):
         with open('channels.txt', 'w', encoding='utf-8') as channels_file:
             channels_file.write(default_channels)
             print("File channels.txt telah dibuat dengan isi default.")
+            log_to_file("File channels.txt telah dibuat dengan isi default.")
 
     # Membaca saluran dari file
     with open('channels.txt', 'r') as file:
@@ -161,11 +147,13 @@ async def main(app):
                                 random_text_file = random_text_file.split('.')[0]
                                 media_file = media_file.split('.')[0]
                                 print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                                log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
                             elif media_path.lower().endswith(('.mp4', '.avi')):
                                 await discussion_message.reply_video(video=media_path, caption=komentar)
                                 random_text_file = random_text_file.split('.')[0]
                                 media_file = media_file.split('.')[0]
                                 print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                                log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
                         except Exception:
                             pass  # Mengabaikan kesalahan ketika tidak bisa mengirim
                     else:
@@ -173,28 +161,87 @@ async def main(app):
                         random_text_file = random_text_file.split('.')[0]
                         media_file = media_file.split('.')[0]
                         print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file}")
+                        log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file}")
 
             except errors.FloodWait as e:
                 print(f"Flood wait: {e.x + 10} detik. Menghentikan sementara...")
+                log_to_file(f"Flood wait: {e.x + 10} detik. Menghentikan sementara...")
                 await countdown(e.x + 10)  # Menunggu e.x + 10 detik
             
             except Exception as e:
                 print("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
+                log_to_file("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
 
             
             comment_delay = random.randint(comment_delay_min, comment_delay_max)
             await countdown(comment_delay)
+            log_to_file(comment_delay)
 
 async def run_all_sessions():
     total_numbers = len(phone_numbers)
     for index, phone_number in enumerate(phone_numbers):
         print(f"Using : {phone_number}")
+        log_to_file(f"Using : {phone_number}")
         await process_channel(phone_number)
-        
+            
+        switch_delay_min = config.get('switch_delay_min', 300)
+        switch_delay_max = config.get('switch_delay_max', 600)
         # Jika bukan nomor terakhir, jalankan countdown switch delay
         if index < total_numbers - 1:
             switch_delay = random.randint(switch_delay_min, switch_delay_max)
             await countdown(switch_delay)
+            log_to_file(switch_delay)
 
-# Menjalankan semua sesi
-asyncio.run(run_all_sessions())
+async def main_menu():
+    while True:
+        display_menu()
+        choice = input("Pilih opsi: ")
+
+        if choice == "1":
+            await run_all_sessions()
+            input("Mission Complete. \nPress the Enter key to the main menu.")
+        elif choice == "2":
+            while True:
+                await run_all_sessions()
+                switch_delay = random.randint(config.get('switch_delay_min', 300), config.get('switch_delay_max', 600))
+                await countdown(switch_delay)
+        elif choice == "3":
+            phone_number = input("nomor telepon: ").strip()
+            session_file = f"{phone_number}.session"
+            if not os.path.exists(session_file):
+                async with Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number) as app:
+                    await app.get_me()  # Menggunakan await di sini
+                    print(f"{phone_number} berhasil ditambahkan.")
+                    log_to_file(f"{phone_number} berhasil ditambahkan.")
+            else:
+                print(f"{phone_number} sudah ada.")
+                log_to_file(f"{phone_number} sudah ada.")
+            input("Press the Enter key to return to the main menu.")
+        elif choice == "4":
+            min_delay = input("jeda minimum: ")
+            max_delay = input("jeda maksimum: ")
+            config['comment_delay_min'] = int(min_delay) if min_delay else 1
+            config['comment_delay_max'] = int(max_delay) if max_delay else 5
+        elif choice == "5":
+            min_delay = input("jeda minimum: ")
+            max_delay = input("jeda maksimum: ")
+            config['switch_delay_min'] = int(min_delay) if min_delay else 300
+            config['switch_delay_max'] = int(max_delay) if max_delay else 600
+        elif choice == "6":
+            limit = input("Jumlah Post: ")
+            config['message_limit'] = int(limit) if limit else 2
+        elif choice == "7":
+            exit()
+        else:
+            print("Pilihan tidak valid. Silakan coba lagi.")
+
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4)
+
+# Titik masuk program
+async def main_run():
+    clear_log_file()
+    await main_menu()
+
+if __name__ == "__main__":
+    asyncio.run(main_run())
