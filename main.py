@@ -27,8 +27,6 @@ default_config = {
 if not os.path.exists(config_file):
     with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(default_config, f, indent=4)
-    print("python main.py API_ID API_Hash")
-    exit()
 
 # Baca config.json yang ada
 with open(config_file, 'r', encoding='utf-8') as f:
@@ -43,17 +41,12 @@ api_id = config.get('api_id')
 api_hash = config.get('api_hash')
 
 if api_id is None or api_hash == "":
-    print("python main.py API_ID API_Hash")
+    print("\nAPI_ID or API_Hash = Invalid\n\nperiksa file config.json\n")
     exit()
 
 # Mendapatkan semua file .session dan nomor telepon
 session_files = [f for f in os.listdir('.') if f.endswith('.session')]
 phone_numbers = [f[:-8] for f in session_files]  # Menghilangkan .session
-
-# Jika tidak ada nomor yang ditemukan
-if not phone_numbers:
-    print("Tidak ada file session ditemukan.")
-    exit()
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -68,20 +61,6 @@ def display_menu():
     print("6. Jumlah Post yang dikomentari dari yang terbaru (", config['message_limit'], ")")
     print("7. Exit")
 
-def display_log_file():
-    try:
-        with open("log.txt", 'r', encoding='utf-8') as f:
-            content = f.read()  # Membaca seluruh isi file
-            print(content)  # Menampilkan isi file
-    except FileNotFoundError:
-        print("File log.txt tidak ditemukan.")
-    except Exception as e:
-        print(f"Terjadi kesalahan: {e}")
-
-def log_to_file(line):
-    with open("log.txt", 'a', encoding='utf-8') as f:
-        f.write(str(line) + '\n')
-
 def clear_log_file():
     with open("log.txt", 'w', encoding='utf-8') as f:
         pass
@@ -92,9 +71,12 @@ async def countdown(t):
         await asyncio.sleep(1)
 
 async def process_channel(phone_number):
-    app = Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number)
-
+    app = Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number, app_version="comment_channel 1.0", device_model="termux")
     async with app:
+        user = await app.get_me()
+        user_name = user.first_name if user.first_name else user.username
+        print(f"                    \nUsing : {user_name} | {phone_number}")
+        
         await main(app)
 
 async def main(app):
@@ -111,7 +93,6 @@ async def main(app):
         with open('channels.txt', 'w', encoding='utf-8') as channels_file:
             channels_file.write(default_channels)
             print("File channels.txt telah dibuat dengan isi default.")
-            log_to_file("File channels.txt telah dibuat dengan isi default.")
 
     # Membaca saluran dari file
     with open('channels.txt', 'r') as file:
@@ -128,60 +109,70 @@ async def main(app):
                 # Mendapatkan pesan diskusi
                 discussion_message = await app.get_discussion_message(channel_username, message_id)
 
-                if text_files:
+                # Cek ketersediaan teks dan media untuk komentar
+                if text_files and media_files:
+                    # Pilih acak file teks dan media
                     random_text_file = random.choice(text_files)
                     with open(os.path.join('text', random_text_file), 'r', encoding='utf-8') as text_file:
                         message_text = text_file.read().strip()
-                else:
-                    message_text = "Tidak ada teks untuk dikirim."
-                komentar = message_text
-                
-                # Memeriksa apakah komentar bisa dikirim
-                if discussion_message:
-                    if media_files:
-                        media_file = random.choice(media_files)
-                        media_path = os.path.join('media', media_file)
-                        try:
-                            if media_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                                await discussion_message.reply_photo(photo=media_path, caption=komentar)
-                                random_text_file = random_text_file.split('.')[0]
-                                media_file = media_file.split('.')[0]
-                                print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
-                                log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
-                            elif media_path.lower().endswith(('.mp4', '.avi')):
-                                await discussion_message.reply_video(video=media_path, caption=komentar)
-                                random_text_file = random_text_file.split('.')[0]
-                                media_file = media_file.split('.')[0]
-                                print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
-                                log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
-                        except Exception:
-                            pass  # Mengabaikan kesalahan ketika tidak bisa mengirim
-                    else:
-                        await discussion_message.reply(komentar)
+                    media_file = random.choice(media_files)
+                    media_path = os.path.join('media', media_file)
+                    
+                    # Kirim teks dengan media
+                    if media_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                        await discussion_message.reply_photo(photo=media_path, caption=message_text)
                         random_text_file = random_text_file.split('.')[0]
                         media_file = media_file.split('.')[0]
-                        print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file}")
-                        log_to_file("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file}")
+                        print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                    elif media_path.lower().endswith(('.mp4', '.avi')):
+                        await discussion_message.reply_video(video=media_path, caption=message_text)
+                        random_text_file = random_text_file.split('.')[0]
+                        media_file = media_file.split('.')[0]
+                        print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                        
+                elif text_files:
+                    # Hanya kirim teks
+                    random_text_file = random.choice(text_files)
+                    with open(os.path.join('text', random_text_file), 'r', encoding='utf-8') as text_file:
+                        message_text = text_file.read().strip()
+                    await discussion_message.reply(message_text)
+                    random_text_file = random_text_file.split('.')[0]
+                    print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file}")
+                
+                elif media_files:
+                    # Hanya kirim media
+                    media_file = random.choice(media_files)
+                    media_path = os.path.join('media', media_file)
+                    if media_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                        await discussion_message.reply_photo(photo=media_path)
+                        random_text_file = random_text_file.split('.')[0]
+                        media_file = media_file.split('.')[0]
+                        print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                    elif media_path.lower().endswith(('.mp4', '.avi')):
+                        await discussion_message.reply_video(video=media_path)
+                        random_text_file = random_text_file.split('.')[0]
+                        media_file = media_file.split('.')[0]
+                        print("✅ " + Fore.GREEN + f"{channel_username}" + Style.RESET_ALL + f" | {random_text_file} | {media_file}")
+                        
+                else:
+                    # Tidak ada file teks atau media, hentikan skrip dan tampilkan pesan
+                    print("❌ Tidak ada file teks atau media untuk dikirim. Silakan periksa file yang akan dikirim.")
+                    return  # Menghentikan eksekusi script
 
             except errors.FloodWait as e:
+                # Menunggu sesuai flood wait
                 print(f"Flood wait: {e.x + 10} detik. Menghentikan sementara...")
-                log_to_file(f"Flood wait: {e.x + 10} detik. Menghentikan sementara...")
-                await countdown(e.x + 10)  # Menunggu e.x + 10 detik
-            
+                await countdown(e.x + 10)
             except Exception as e:
                 print("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
-                log_to_file("❌ " + Fore.RED + f"{channel_username}" + Style.RESET_ALL)
 
-            
+            # Delay antar komentar
             comment_delay = random.randint(comment_delay_min, comment_delay_max)
             await countdown(comment_delay)
-            log_to_file(comment_delay)
 
 async def run_all_sessions():
     total_numbers = len(phone_numbers)
     for index, phone_number in enumerate(phone_numbers):
-        print(f"Using : {phone_number}")
-        log_to_file(f"Using : {phone_number}")
         await process_channel(phone_number)
             
         switch_delay_min = config.get('switch_delay_min', 300)
@@ -190,7 +181,6 @@ async def run_all_sessions():
         if index < total_numbers - 1:
             switch_delay = random.randint(switch_delay_min, switch_delay_max)
             await countdown(switch_delay)
-            log_to_file(switch_delay)
 
 async def main_menu():
     while True:
@@ -198,24 +188,32 @@ async def main_menu():
         choice = input("Pilih opsi: ")
 
         if choice == "1":
-            await run_all_sessions()
-            input("Mission Complete. \nPress the Enter key to the main menu.")
-        elif choice == "2":
-            while True:
+            # Jika tidak ada nomor yang ditemukan
+            if not phone_numbers:
+                print("\nTidak ada file session yang ditemukan.")
+                input("\nPress the Enter to the main menu.")
+            else:
                 await run_all_sessions()
-                switch_delay = random.randint(config.get('switch_delay_min', 300), config.get('switch_delay_max', 600))
-                await countdown(switch_delay)
+                input("Mission Complete. \nPress the Enter key to the main menu.")
+        elif choice == "2":
+            # Jika tidak ada nomor yang ditemukan
+            if not phone_numbers:
+                print("\nTidak ada file session yang ditemukan.")
+                input("\nPress the Enter to the main menu.")
+            else:
+                while True:
+                    await run_all_sessions()
+                    switch_delay = random.randint(config.get('switch_delay_min', 300), config.get('switch_delay_max', 600))
+                    await countdown(switch_delay)
         elif choice == "3":
             phone_number = input("nomor telepon: ").strip()
             session_file = f"{phone_number}.session"
             if not os.path.exists(session_file):
-                async with Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number) as app:
+                async with Client(phone_number, api_id=api_id, api_hash=api_hash, phone_number=phone_number, app_version="comment_channel 1.0", device_model="termux") as app:
                     await app.get_me()  # Menggunakan await di sini
                     print(f"{phone_number} berhasil ditambahkan.")
-                    log_to_file(f"{phone_number} berhasil ditambahkan.")
             else:
-                print(f"{phone_number} sudah ada.")
-                log_to_file(f"{phone_number} sudah ada.")
+                    print(f"{phone_number} sudah ada.")
             input("Press the Enter key to return to the main menu.")
         elif choice == "4":
             min_delay = input("jeda minimum: ")
